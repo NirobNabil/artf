@@ -4,6 +4,7 @@ import os
 import datetime
 import json
 import sqlite3
+import base64
 import random
 import string
 
@@ -148,7 +149,17 @@ def list_products():
     cursor = db.cursor()
     cursor.execute('SELECT * FROM products')
     products = cursor.fetchall()
-    return jsonify(products)
+
+    # Convert BLOB data to base64 encoded strings
+    products_serializable = []
+    for product in products:
+        product_dict = dict(product)
+        product_dict['thumbnail'] = base64.b64encode(
+            product_dict['thumbnail']).decode('utf-8')
+        products_serializable.append(product_dict)
+
+    return jsonify(products_serializable)
+
 
 # Route to retrieve product details
 
@@ -171,5 +182,16 @@ def product_details(product_id):
         return jsonify({'error': 'Product not found'}), 404
 
 
+@app.route('/list_products')
+def render_list_products():
+    return render_template('list_products.html')
+
+
+@app.route('/product_details/<int:product_id>')
+def render_product_details(product_id):
+    return render_template('product_details.html', product_id=product_id)
+
+
 if __name__ == "__main__":
+    init_db()
     app.run(debug=True, port=8080)
