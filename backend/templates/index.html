@@ -3,16 +3,58 @@
 {% block title %}Index{% endblock %}
 
 {% block content %}
-<!-- <h1>Hello World</h1>
-<form method="POST" action="{{ url_for('index') }}">
-    <input type="text" name="username" placeholder="username"><br>
-    <input type="password" name="password" placeholder="password"><br>
-    <input type="submit" value="login"><br>
-</form> -->
+<div class="container">
+    <h1>Product Upload</h1>
+    <form id="uploadForm" enctype="multipart/form-data">
+        <input type="text" id="productName" name="productName" placeholder="Product Name">
+        <input type="number" id="productHeight" name="productHeight" placeholder="Product Height">
+        <input type="number" id="productWidth" name="productWidth" placeholder="Product Width">
+        <input type="file" id="thumbnail" name="thumbnail" accept="image/*">
+        <input type="file" id="images" name="images" accept="image/*" multiple>
+        <button type="submit">Upload Product</button>
+    </form>
+</div>
 
-<h1>File upload</h1>
-<form method="POST" action="{{ url_for('file_upload') }}" enctype="multipart/form-data">
-    <input type="file" name="file" accept="*/*" multiple>
-    <input type="submit" value="upload file">
-</form>
+<script>
+    document.getElementById( 'uploadForm' ).addEventListener( 'submit', async ( event ) =>
+    {
+        event.preventDefault();
+
+        const formData = new FormData();
+        formData.append( 'productName', document.getElementById( 'productName' ).value );
+        formData.append( 'height', document.getElementById( 'productHeight' ).value );
+        formData.append( 'width', document.getElementById( 'productWidth' ).value );
+        formData.append( 'thumbnail', document.getElementById( 'thumbnail' ).files[ 0 ] );
+
+        const selectedImages = document.getElementById( 'images' ).files;
+        console.log( selectedImages )
+        Array.from( selectedImages ).forEach( ( image, i ) =>
+        {
+            formData.append( `image-${ i + 1 }`, image );
+            console.log( image )
+        } );
+
+        try
+        {
+            const response = await fetch( '{{ file_upload_url }}', {
+                method: 'POST',
+                body: formData
+            } );
+            if ( response.ok )
+            {
+                console.log( 'Product uploaded successfully' );
+                const responseData = await response.json();
+                console.log( 'Product directory:', responseData.product_directory );
+                console.log( 'images:', responseData.images );
+                // Add any additional logic here after successful upload
+            } else
+            {
+                console.error( 'Failed to upload product' );
+            }
+        } catch ( error )
+        {
+            console.error( 'Error uploading product:', error );
+        }
+    } );
+</script>
 {% endblock %}

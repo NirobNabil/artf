@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
+// import axios from "axios";
 import Image from "next/image";
 
 const FileUploadForm = () => {
@@ -8,14 +8,14 @@ const FileUploadForm = () => {
 
   const handleFileChange = (event) => {
       setSelectedImages(event.target.files)
-      const fileMetaDatas = event.target.files;
-      for (let i = 0; i < fileMetaDatas.length; i++) {
-        const fr = new FileReader();
-        fr.onload = () => {
-          setLoadedImages((prev) => [...prev, fr.result]);
-        };
-        fr.readAsDataURL(fileMetaDatas[i]);
-      }
+      // const fileMetaDatas = event.target.files;
+      // for (let i = 0; i < fileMetaDatas.length; i++) {
+      //   const fr = new FileReader();
+      //   fr.onload = () => {
+      //     setLoadedImages((prev) => [...prev, fr.result]);
+      //   };
+      //   fr.readAsDataURL(fileMetaDatas[i]);
+      // }
   };
 
   const handleSubmit = async (event) => {
