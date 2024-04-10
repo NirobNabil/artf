@@ -2,11 +2,11 @@ import FileUploaderForm from "../../components/FileUploadForm";
 
 export default function Page() {
   return (
-    <div className="bg-gray-900 min-h-screen flex flex-col justify-center items-center p-8">
-      <h1 className="text-6xl font-bold text-white mb-8 opacity-70">
-        Product Details
-      </h1>
-      <div className="bg-gray-700 rounded-lg shadow-xl w-full max-w-xl p-8">
+    <div className="bg-gray-900 min-h-screen flex flex-col justify-center items-center p-6">
+      <div className="w-full p-6 bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
+        <h1 className="text-6xl font-bold text-gray-900 opacity-70 my-10">
+            Product Details
+        </h1>
         <FileUploaderForm />
       </div>
     </div>
