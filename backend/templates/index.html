@@ -47,6 +47,8 @@
                 console.log( 'Product directory:', responseData.product_directory );
                 console.log( 'images:', responseData.images );
                 // Add any additional logic here after successful upload
+                // Redirect to the list_products page
+                window.location.href = '/products';
             } else
             {
                 console.error( 'Failed to upload product' );

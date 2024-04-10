@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}List Products{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>List Products</h1>
+    <div id="productList"></div>
+</div>
+
+<script>
+    // Fetch products from the server
+    fetch( '/products' )
+        .then( response => response.json() )
+        .then( products =>
+        {
+            const productList = document.getElementById( 'productList' );
+            products.forEach( product =>
+            {
+                const productDiv = document.createElement( 'div' );
+                productDiv.innerHTML = `<p>Product ID: ${ product.id }, Name: ${ product.name }</p>`;
+                productList.appendChild( productDiv );
+            } );
+        } )
+        .catch( error => console.error( 'Error fetching products:', error ) );
+</script>
+{% endblock %}
