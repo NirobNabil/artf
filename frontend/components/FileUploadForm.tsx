@@ -7,7 +7,10 @@ const FileUploadForm = () => {
   const [selectedImages, setSelectedImages] = useState([]);
   const [selectedThumbnail, setSelectedThumbnail] = useState();
 
-  const handleFileChange = (event) => {
+  const handleFileChange = (
+    
+
+  ) => {
       setSelectedImages(event.target.files)
       const fileMetaDatas = event.target.files;
       for (let i = 0; i < fileMetaDatas.length; i++) {
@@ -24,6 +27,7 @@ const FileUploadForm = () => {
 };
 
   const handleSubmit = async (event) => {
+    window.e=event;
     event.preventDefault();
     
     const form = event.currentTarget;
@@ -33,7 +37,7 @@ const FileUploadForm = () => {
     formData.append('thumbnail', selectedThumbnail)
 
     Array.from(selectedImages).forEach( (image, i) => {
-      formData.append( `image-${i+1}.jpg`, image )
+      formData.append( `image-${i+1}`, image )
     } )
 
     console.log(formData)
@@ -43,7 +47,7 @@ const FileUploadForm = () => {
       body: formData
     };
 
-    // fetch(url, fetchOptions);
+    fetch(url, fetchOptions);
 
   };
 

@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, jsonify, g
+from flask import *
 from flask_cors import CORS
 import os
 import datetime
@@ -9,8 +9,12 @@ import random
 import string
 
 
-app = Flask(__name__, template_folder='templates')
+app = Flask(__name__, template_folder='templates', static_folder='static')
 CORS(app)
+
+# Directory to store uploaded images
+UPLOAD_FOLDER = 'uploads'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -43,10 +47,11 @@ def init_db():
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS products (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                height REAL,
-                width REAL,
-                thumbnail BLOB,
+                productName TEXT NOT NULL,
+                uid TEXT,
+                height TEXT,
+                width TEXT,
+                thumbnail TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
@@ -100,7 +105,18 @@ def file_upload():
         thumbnail = request.files.get('thumbnail')
         if thumbnail:
             thumbnail_filename = thumbnail.filename
+            # Save thumbnail image in uploads directory
             thumbnail.save(os.path.join(product_directory, thumbnail_filename))
+
+            # Create a copy of the thumbnail image in static directory
+            static_thumbnail_path = os.path.join(
+                'static', 'uploads', thumbnail_filename)
+            os.makedirs(os.path.dirname(static_thumbnail_path), exist_ok=True)
+            thumbnail.save(static_thumbnail_path)
+
+            # Construct URL for the static thumbnail image
+            thumbnail_url = url_for('static', filename=os.path.join(
+                'uploads', thumbnail_filename))
 
         # Save multiple images and their details
         images_data = []
@@ -130,12 +146,13 @@ def file_upload():
         db = get_db()
         cursor = db.cursor()
         cursor.execute('''
-            INSERT INTO products (name, height, width, thumbnail)
-            VALUES (?, ?, ?, ?)
-        ''', (product_name, product_height, product_width, thumbnail.read()))
+            INSERT INTO products (productName, uid, height, width, thumbnail)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (product_name, product_directory, product_height, product_width, thumbnail_url))
 
         # Commit changes to database
         db.commit()
+        print("jhsd")
         return jsonify({'message': 'Product images and details uploaded successfully', 'product_directory': product_directory, 'images': images_data})
     else:
         return jsonify({'error': 'Product name not provided'}), 400
@@ -150,15 +167,24 @@ def list_products():
     cursor.execute('SELECT * FROM products')
     products = cursor.fetchall()
 
-    # Convert BLOB data to base64 encoded strings
+    # Convert BLOB data to base64 encoded strings and construct product details
     products_serializable = []
     for product in products:
         product_dict = dict(product)
-        product_dict['thumbnail'] = base64.b64encode(
-            product_dict['thumbnail']).decode('utf-8')
-        products_serializable.append(product_dict)
+        # Assuming the thumbnail URL is already stored in the database
+        thumbnail_url = product_dict['thumbnail']
+        product_details = {
+            'productName': product_dict['productName'],
+            # Assuming 'uid' contains the unique identifier for each product
+            'id': product_dict['uid'],
+            'height': product_dict['height'],
+            'width': product_dict['width'],
+            'thumbnail': thumbnail_url
+        }
+        products_serializable.append(product_details)
 
-    return jsonify(products_serializable)
+    # Render the frontend using the provided .tsx file and pass product details
+    return render_template('frontend/src/pages/buyer/[id].tsx', products=products_serializable)
 
 
 # Route to retrieve product details
