@@ -10,7 +10,7 @@ export default function Page() {
             'id': '37f27sd4ted2374-2ag7324aa234-34hg234',
             height: '42cm',
             width: '20cm',
-            thumbnail: 'https://images4.alphacoders.com/131/1314559.png'
+            thumbnail: 'http://localhost:8080/product_thumbnail/1_2_final_result.png'
         }
         setProductDetails(gg)
     } )

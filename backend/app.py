@@ -7,7 +7,8 @@ import sqlite3
 import base64
 import random
 import string
-
+from flask import send_from_directory
+import uuid
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 CORS(app)
@@ -92,7 +93,7 @@ def close_db(exception):
 
 @app.route('/fileupload', methods=['POST'])
 def file_upload():
-    product_name = request.form.get('productName')
+    product_name = request.form.get('productName') + "_" + str(uuid.uuid4())
     product_height = request.form.get('height')
     product_width = request.form.get('width')
 
@@ -104,9 +105,8 @@ def file_upload():
         # Save thumbnail image
         thumbnail = request.files.get('thumbnail')
         if thumbnail:
-            thumbnail_filename = thumbnail.filename
-            # Save thumbnail image in uploads directory
-            thumbnail.save(os.path.join(product_directory, thumbnail_filename))
+            print(thumbnail)
+            thumbnail_filename = product_name + "_thumbnail." + thumbnail.filename.split('.')[-1]
 
             # Create a copy of the thumbnail image in static directory
             static_thumbnail_path = os.path.join(
@@ -117,13 +117,14 @@ def file_upload():
             # Construct URL for the static thumbnail image
             thumbnail_url = url_for('static', filename=os.path.join(
                 'uploads', thumbnail_filename))
+            print(thumbnail_url)
 
         # Save multiple images and their details
         images_data = []
         for i in range(1, len(request.files) + 1):
             image = request.files.get(f'image-{i}')
             if image:
-                image_filename = image.filename
+                image_filename = f"sample-{i}." + image.filename.split('.')[-1]
                 image.save(os.path.join(product_directory, image_filename))
                 images_data.append({'filename': image_filename})
 
@@ -181,10 +182,13 @@ def list_products():
             'width': product_dict['width'],
             'thumbnail': thumbnail_url
         }
+        print(product_details)
         products_serializable.append(product_details)
 
+    return products_serializable
+
     # Render the frontend using the provided .tsx file and pass product details
-    return render_template('frontend/src/pages/buyer/[id].tsx', products=products_serializable)
+    # return render_template('frontend/src/pages/buyer/[id].tsx', products=products_serializable)
 
 
 # Route to retrieve product details
@@ -217,6 +221,10 @@ def render_list_products():
 def render_product_details(product_id):
     return render_template('product_details.html', product_id=product_id)
 
+
+@app.route('/product_thumbnail/<path:path>')
+def serve_thumbnail(path):
+    return send_from_directory( app.static_folder, path )
 
 if __name__ == "__main__":
     init_db()

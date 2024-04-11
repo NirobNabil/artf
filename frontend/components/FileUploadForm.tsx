@@ -7,10 +7,7 @@ const FileUploadForm = () => {
   const [selectedImages, setSelectedImages] = useState([]);
   const [selectedThumbnail, setSelectedThumbnail] = useState();
 
-  const handleFileChange = (
-    
-
-  ) => {
+  const handleFileChange = (event) => {
       setSelectedImages(event.target.files)
       const fileMetaDatas = event.target.files;
       for (let i = 0; i < fileMetaDatas.length; i++) {
