@@ -9,6 +9,9 @@ import random
 import string
 from flask import send_from_directory
 import uuid
+from werkzeug.security import generate_password_hash, check_password_hash
+import jwt
+from functools import wraps
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 CORS(app)
@@ -16,6 +19,7 @@ CORS(app)
 # Directory to store uploaded images
 UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['SECRET_KEY'] = 'artf'
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -56,6 +60,13 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL
+            )
+        ''')
         db.commit()
 # Close database connection at the end of each request
 
@@ -66,30 +77,6 @@ def close_db(exception):
     if db is not None:
         db.close()
 
-# Route to handle file upload
-
-
-# @app.route('/fileupload', methods=['POST'])
-# def file_upload():
-#     # Get product information from request
-#     product_name = request.form.get('productName')
-#     product_height = request.form.get('height')
-#     product_width = request.form.get('width')
-#     thumbnail = request.files.get('thumbnail')
-#     images = request.files.getlist('images')
-
-#     # Insert product information into database
-#     db = get_db()
-#     cursor = db.cursor()
-#     cursor.execute('''
-#         INSERT INTO products (name, height, width, thumbnail)
-#         VALUES (?, ?, ?, ?)
-#     ''', (product_name, product_height, product_width, thumbnail.read()))
-
-#     # Commit changes to database
-#     db.commit()
-
-#     return jsonify({'message': 'Product uploaded successfully'}), 200
 
 @app.route('/fileupload', methods=['POST'])
 def file_upload():
@@ -106,7 +93,8 @@ def file_upload():
         thumbnail = request.files.get('thumbnail')
         if thumbnail:
             print(thumbnail)
-            thumbnail_filename = product_name + "_thumbnail." + thumbnail.filename.split('.')[-1]
+            thumbnail_filename = product_name + "_thumbnail." + \
+                thumbnail.filename.split('.')[-1]
 
             # Create a copy of the thumbnail image in static directory
             static_thumbnail_path = os.path.join(
@@ -224,7 +212,72 @@ def render_product_details(product_id):
 
 @app.route('/product_thumbnail/<path:path>')
 def serve_thumbnail(path):
-    return send_from_directory( app.static_folder, path )
+    return send_from_directory(app.static_folder, path)
+
+
+# Route for user registration
+@app.route('/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    if not username or not password:
+        return jsonify({'error': 'Username and password are required'}), 400
+    hashed_password = generate_password_hash(password)
+    db = get_db()
+    cursor = db.cursor()
+    try:
+        cursor.execute(
+            "INSERT INTO users (username, password) VALUES (?, ?)", (username, hashed_password))
+        db.commit()
+        return jsonify({'message': 'User registered successfully'}), 201
+    except sqlite3.IntegrityError:
+        return jsonify({'error': 'Username already exists'}), 400
+
+# Route for user login
+
+
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    if not username or not password:
+        return jsonify({'error': 'Username and password are required'}), 400
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute("SELECT * FROM users WHERE username=?", (username,))
+    user = cursor.fetchone()
+    if user and check_password_hash(user['password'], password):
+        token = jwt.encode({'username': username, 'exp': datetime.datetime.utcnow(
+        ) + datetime.timedelta(hours=1)}, app.config['SECRET_KEY'])
+        return jsonify({'token': token})
+    return jsonify({'error': 'Invalid username or password'}), 401
+
+# Token required decorator
+
+
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = request.headers.get('Authorization')
+        if not token:
+            return jsonify({'error': 'Token is missing'}), 401
+        try:
+            data = jwt.decode(token, app.config['SECRET_KEY'])
+        except:
+            return jsonify({'error': 'Invalid token'}), 401
+        return f(*args, **kwargs)
+    return decorated
+
+# Protected route example
+
+
+@app.route('/protected', methods=['GET'])
+@token_required
+def protected():
+    return jsonify({'message': 'This is a protected route'})
+
 
 if __name__ == "__main__":
     init_db()
