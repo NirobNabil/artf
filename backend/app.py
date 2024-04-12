@@ -57,6 +57,7 @@ def init_db():
                 height TEXT,
                 width TEXT,
                 thumbnail TEXT,
+                username TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
@@ -80,6 +81,12 @@ def close_db(exception):
 
 @app.route('/fileupload', methods=['POST'])
 def file_upload():
+
+    token = request.headers.get('Authorization')
+    username = get_username_from_token(token)
+    if not username:
+        return jsonify({'error': 'Invalid token'}), 401
+
     product_name = request.form.get('productName') + "_" + str(uuid.uuid4())
     product_height = request.form.get('height')
     product_width = request.form.get('width')
@@ -135,10 +142,9 @@ def file_upload():
         db = get_db()
         cursor = db.cursor()
         cursor.execute('''
-            INSERT INTO products (productName, uid, height, width, thumbnail)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (product_name, product_directory, product_height, product_width, thumbnail_url))
-
+            INSERT INTO products (productName, uid, height, width, thumbnail, username)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (product_name, product_directory, product_height, product_width, thumbnail_url, username))
         # Commit changes to database
         db.commit()
         print("jhsd")
@@ -270,6 +276,18 @@ def token_required(f):
         return f(*args, **kwargs)
     return decorated
 
+
+def get_username_from_token(token):
+    try:
+        decoded_token = jwt.decode(
+            token, app.config['SECRET_KEY'], algorithms=['HS256'])
+        username = decoded_token.get('username')
+        return username
+    except jwt.ExpiredSignatureError:
+        return None  # Token has expired
+    except jwt.InvalidTokenError:
+        return None  # Invalid token
+
 # Protected route example
 
 
@@ -277,6 +295,35 @@ def token_required(f):
 @token_required
 def protected():
     return jsonify({'message': 'This is a protected route'})
+
+# Route to display all products with their details listed with the username from the token
+
+
+@app.route('/all_products', methods=['GET'])
+@token_required
+def all_products():
+    token = request.headers.get('Authorization')
+    username = get_username_from_token(token)
+    if not username:
+        return jsonify({'error': 'Invalid token'}), 401
+
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute('SELECT * FROM products WHERE username=?', (username,))
+    products = cursor.fetchall()
+
+    products_list = []
+    for product in products:
+        product_dict = dict(product)
+        product_details = {
+            'productName': product_dict['productName'],
+            'height': product_dict['height'],
+            'width': product_dict['width'],
+            'thumbnail': product_dict['thumbnail']
+        }
+        products_list.append(product_details)
+
+    return jsonify({'username': username, 'products': products_list})
 
 
 if __name__ == "__main__":
