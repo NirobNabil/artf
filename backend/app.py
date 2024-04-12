@@ -65,7 +65,9 @@ def init_db():
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT UNIQUE NOT NULL,
-                password TEXT NOT NULL
+                password TEXT NOT NULL,
+                token TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
         db.commit()
@@ -83,6 +85,7 @@ def close_db(exception):
 def file_upload():
 
     token = request.headers.get('Authorization')
+    # print(token)
     username = get_username_from_token(token)
     if not username:
         return jsonify({'error': 'Invalid token'}), 401
@@ -255,10 +258,16 @@ def login():
     cursor.execute("SELECT * FROM users WHERE username=?", (username,))
     user = cursor.fetchone()
     if user and check_password_hash(user['password'], password):
+        # Generate token
         token = jwt.encode({'username': username, 'exp': datetime.datetime.utcnow(
         ) + datetime.timedelta(hours=1)}, app.config['SECRET_KEY'])
+        # Save token in the database
+        cursor.execute(
+            "UPDATE users SET token=? WHERE username=?", (token, username))
+        db.commit()
         return jsonify({'token': token})
     return jsonify({'error': 'Invalid username or password'}), 401
+
 
 # Token required decorator
 
@@ -277,12 +286,20 @@ def token_required(f):
     return decorated
 
 
+# Function to get username from token
 def get_username_from_token(token):
     try:
-        decoded_token = jwt.decode(
-            token, app.config['SECRET_KEY'], algorithms=['HS256'])
-        username = decoded_token.get('username')
-        return username
+        # print(token)
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute("SELECT username FROM users WHERE token=?", (token,))
+        user = cursor.fetchone()
+        if user:
+            # print("asas"+user['username'])
+            return user['username']
+        else:
+            # print("weee")
+            return None
     except jwt.ExpiredSignatureError:
         return None  # Token has expired
     except jwt.InvalidTokenError:
@@ -300,7 +317,7 @@ def protected():
 
 
 @app.route('/all_products', methods=['GET'])
-@token_required
+# @token_required
 def all_products():
     token = request.headers.get('Authorization')
     username = get_username_from_token(token)
