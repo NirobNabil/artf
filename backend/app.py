@@ -49,7 +49,7 @@ def init_db():
             CREATE TABLE IF NOT EXISTS products (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 productName TEXT NOT NULL,
-                uid TEXT,
+                productId TEXT,
                 height TEXT,
                 width TEXT,
                 thumbnail TEXT,
@@ -93,9 +93,10 @@ def close_db(exception):
 
 @app.route('/fileupload', methods=['POST'])
 def file_upload():
-    product_name = request.form.get('productName') + "_" + str(uuid.uuid4())
+    product_name = request.form.get('productName')
     product_height = request.form.get('height')
     product_width = request.form.get('width')
+    product_id = str(uuid.uuid4())
 
     if product_name:
         # Create a directory with product name and current date-time
@@ -106,7 +107,7 @@ def file_upload():
         thumbnail = request.files.get('thumbnail')
         if thumbnail:
             print(thumbnail)
-            thumbnail_filename = product_name + "_thumbnail." + thumbnail.filename.split('.')[-1]
+            thumbnail_filename = product_id + "_thumbnail." + thumbnail.filename.split('.')[-1]
 
             # Create a copy of the thumbnail image in static directory
             static_thumbnail_path = os.path.join(
@@ -133,6 +134,7 @@ def file_upload():
 
         # Save the product details as JSON file
         product_details = {
+            'product_id': product_id,
             'product_name': product_name,
             'product_height': product_height,
             'product_width': product_width,
@@ -147,14 +149,14 @@ def file_upload():
         db = get_db()
         cursor = db.cursor()
         cursor.execute('''
-            INSERT INTO products (productName, uid, height, width, thumbnail)
+            INSERT INTO products (productName, productId, height, width, thumbnail)
             VALUES (?, ?, ?, ?, ?)
-        ''', (product_name, product_directory, product_height, product_width, thumbnail_url))
+        ''', (product_name, product_id, product_height, product_width, thumbnail_url))
 
         # Commit changes to database
         db.commit()
         print("jhsd")
-        return jsonify({'message': 'Product images and details uploaded successfully', 'product_directory': product_directory, 'images': images_data})
+        return jsonify({'message': 'Product images and details uploaded successfully', 'product_id': product_id, 'images': images_data})
     else:
         return jsonify({'error': 'Product name not provided'}), 400
 
@@ -177,7 +179,7 @@ def list_products():
         product_details = {
             'productName': product_dict['productName'],
             # Assuming 'uid' contains the unique identifier for each product
-            'id': product_dict['uid'],
+            'id': product_dict['productId'],
             'height': product_dict['height'],
             'width': product_dict['width'],
             'thumbnail': thumbnail_url
@@ -194,16 +196,16 @@ def list_products():
 # Route to retrieve product details
 
 
-@app.route('/product/<int:product_id>', methods=['GET'])
+@app.route('/product/<string:product_id>', methods=['GET'])
 def product_details(product_id):
     db = get_db()
     cursor = db.cursor()
-    cursor.execute('SELECT * FROM products WHERE id = ?', (product_id,))
+    cursor.execute('SELECT * FROM products WHERE productId = ?', (product_id,))
     product = cursor.fetchone()
     if product:
         return jsonify({
-            'id': product['id'],
-            'name': product['name'],
+            'id': product['productId'],
+            'productName': product['productName'],
             'height': product['height'],
             'width': product['width'],
             'thumbnail': product['thumbnail']

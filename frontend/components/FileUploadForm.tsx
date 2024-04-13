@@ -1,11 +1,13 @@
 import React, { useState } from "react";
 // import axios from "axios";
 import Image from "next/image";
+import FileUploadResultModal from "./FileUploadResultModal";
 
 const FileUploadForm = () => {
   const [loadedImages, setLoadedImages] = useState([]);
   const [selectedImages, setSelectedImages] = useState([]);
   const [selectedThumbnail, setSelectedThumbnail] = useState();
+  const [productUrl, setProductUrl] = useState()
 
   const handleFileChange = (event) => {
       setSelectedImages(event.target.files)
@@ -44,11 +46,14 @@ const FileUploadForm = () => {
       body: formData
     };
 
-    fetch(url, fetchOptions);
+    fetch(url, fetchOptions).then( res => res.json() ).then( res => {
+      setProductUrl( "localhost:3000/buyer/" + res.product_id )
+    } )
 
   };
 
   return (
+    <>
     <form className="flex flex-col " style={{rowGap: '15px'}}  onSubmit={handleSubmit}>
       
       <input type="text" name="productName" className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Nezuko Keychain" required />
@@ -89,7 +94,7 @@ const FileUploadForm = () => {
           onChange={handleFileChange}
           className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400"
         />
-        {/* <p class="mt-1 text-sm text-gray-500 dark:text-gray-300" id="file_input_help">PNG only</p> */}
+        {/* <p className="mt-1 text-sm text-gray-500 dark:text-gray-300" id="file_input_help">PNG only</p> */}
       </div>
       <button
         type="submit"
@@ -98,6 +103,14 @@ const FileUploadForm = () => {
         Upload
       </button>
     </form>
+    
+    { productUrl && 
+      <div className="w-full flex-col gap-x-8" style={{margin: '1rem 0'}} >
+        <div style={{color: 'black', width: '10rem'}} className="text-black w-48 p-2">Product URL: </div>
+        <input id="npm-install" type="text" className=" bg-gray-50 border border-gray-300 text-gray-500 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-gray-400 dark:focus:ring-blue-500 dark:focus:border-blue-500" value={productUrl} disabled readonly />
+      </div>
+    }
+    </>
   );
 };
 

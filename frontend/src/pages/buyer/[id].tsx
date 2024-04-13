@@ -1,19 +1,22 @@
+import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
 export default function Page() {
 
     const [productDetails, setProductDetails] = useState({})
+    const [queryId, setQueryId]  = useState()
+    const router = useRouter()
+    const server_url = "http://localhost:8080/"
 
     useEffect( () => {
-        let gg = {
-            'productName': "Nezuko Chan",
-            'id': '37f27sd4ted2374-2ag7324aa234-34hg234',
-            height: '42cm',
-            width: '20cm',
-            thumbnail: 'http://localhost:8080/product_thumbnail/1_2_final_result.png'
-        }
-        setProductDetails(gg)
-    } )
+        if( !router.query.id ) return;
+
+        console.log(router.query)
+
+        fetch( server_url + 'product/' + router.query.id ).then( res => res.json() ).then( res => {
+            setProductDetails(res)
+        } )
+    }, [router.query] )
 
   return (
     <div className="bg-gray-900 min-h-screen flex flex-col justify-center items-center p-8">
@@ -22,7 +25,7 @@ export default function Page() {
         </h1>
         <div className="max-w-sm bg-gray-400 border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
             <a href="#">
-                <img className="rounded-t-lg" src={productDetails['thumbnail']} alt="Product image" />
+                <img className="rounded-t-lg" src={server_url + productDetails['thumbnail']} alt="Product image" />
             </a>
             <div className="p-5">
                 <h5 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">{productDetails['productName']}</h5>
