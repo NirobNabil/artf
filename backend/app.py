@@ -146,9 +146,9 @@ def file_upload():
         db = get_db()
         cursor = db.cursor()
         cursor.execute('''
-            INSERT INTO products (productName, uid, height, width, thumbnail, username)
+            INSERT INTO products (productName, productId, height, width, thumbnail, username)
             VALUES (?, ?, ?, ?, ?, ?)
-        ''', (product_name, product_directory, product_height, product_width, thumbnail_url, username))
+        ''', (product_name, product_id, product_height, product_width, thumbnail_url, username))
         # Commit changes to database
         db.commit()
         print("jhsd")
@@ -198,6 +198,7 @@ def product_details(product_id):
     cursor = db.cursor()
     cursor.execute('SELECT * FROM products WHERE productId = ?', (product_id,))
     product = cursor.fetchone()
+    print(product_id)
     if product:
         return jsonify({
             'id': product['productId'],
@@ -228,9 +229,8 @@ def serve_thumbnail(path):
 # Route for user registration
 @app.route('/register', methods=['POST'])
 def register():
-    data = request.get_json()
-    username = data.get('username')
-    password = data.get('password')
+    username = request.form['username']
+    password = request.form['password']
     if not username or not password:
         return jsonify({'error': 'Username and password are required'}), 400
     hashed_password = generate_password_hash(password)
@@ -249,9 +249,8 @@ def register():
 
 @app.route('/login', methods=['POST'])
 def login():
-    data = request.get_json()
-    username = data.get('username')
-    password = data.get('password')
+    username = request.form['username']
+    password = request.form['password']
     if not username or not password:
         return jsonify({'error': 'Username and password are required'}), 400
     db = get_db()

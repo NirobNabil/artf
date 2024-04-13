@@ -43,7 +43,10 @@ const FileUploadForm = () => {
 
     const fetchOptions = {
       method: 'post',
-      body: formData
+      body: formData,
+      headers: {
+        'Authorization': localStorage.getItem('token')
+      }
     };
 
     fetch(url, fetchOptions).then( res => res.json() ).then( res => {
